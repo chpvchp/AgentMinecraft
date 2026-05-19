@@ -40,11 +40,12 @@ services:
               count: 1
               capabilities: [gpu]
     command: >
-      -m /models/model.gguf
+      -m /models/Qwen3.5-2B-Q4_K_M.gguf
       -ngl 99
       -t 6
       --ctx-size 8192
       -fa on
+      --reasoning off
       --host 0.0.0.0
       --port 8081
     networks:
