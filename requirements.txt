@@ -12,3 +12,5 @@ PyJWT[crypto]
 requests
 aiohttp
 httpx
+
+langgraph
