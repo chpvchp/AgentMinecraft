@@ -1,14 +1,17 @@
-from playwright.sync_api import sync_playwright
+import httpx
 
-class MincraftWiki:
+class MinecraftWiki:
     BASE_URL = "https://minecraft.wiki/api.php"
-    
     def __init__(self):
-        self.playwright = sync_playwright().start()
-        self.request = self.playwright.request.new_context()
+        self.client = httpx.Client(
+            headers={
+                "User-Agent": "AgentMinecraft/1.0"
+            },
+            timeout=8
+        )
         
     def get_extract(self, title):
-        response = self.request.get(
+        response = self.client.get(
             self.BASE_URL,
             params={
                 "action": "query",
@@ -22,9 +25,8 @@ class MincraftWiki:
         return response.json()
     
     def close(self):
-        self.request.dispose()
-        self.playwright.stop()
-    
-wiki = MincraftWiki()
+        self.client.close()
 
-print(wiki.get_extract("Mace"))
+
+wiki = MinecraftWiki()
+print(wiki.get_extract("Mace"))        
