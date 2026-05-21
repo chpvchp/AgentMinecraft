@@ -28,8 +28,6 @@ services:
       - 8081:8081
     volumes:
       - ./models:/models
-    environment:
-      - GGML_CUDA_ENABLE_UNIFIED_MEMORY=1
     deploy:
       resources:
         reservations:
