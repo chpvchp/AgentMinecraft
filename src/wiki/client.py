@@ -27,6 +27,4 @@ class MinecraftWiki:
     def close(self):
         self.client.close()
 
-
-wiki = MinecraftWiki()
-print(wiki.get_extract("Mace"))        
+ 
