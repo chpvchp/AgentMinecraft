@@ -1,19 +1,30 @@
 from playwright.sync_api import sync_playwright
 
-def get_info_wiki(titles):
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        
-        page = browser.new_page()
-        
-        url = f"https://minecraft.wiki/api.php?action=query&prop=extracts&titles={titles}&explaintext=1&format=json"
-        
-        response = page.goto(url=url)
-
-        data = page.text_content("body")
-
-        page.close()
-        
-        return data
+class MincraftWiki:
+    BASE_URL = "https://minecraft.wiki/api.php"
     
-print(get_info_wiki("Mace"))
+    def __init__(self):
+        self.playwright = sync_playwright().start()
+        self.request = self.playwright.request.new_context()
+        
+    def get_extract(self, title):
+        response = self.request.get(
+            self.BASE_URL,
+            params={
+                "action": "query",
+                "prop": "extracts",
+                "titles": title,
+                "explaintext": 1,
+                "format": "json"
+            }
+        )
+        
+        return response.json()
+    
+    def close(self):
+        self.request.dispose()
+        self.playwright.stop()
+    
+wiki = MincraftWiki()
+
+print(wiki.get_extract("Mace"))
