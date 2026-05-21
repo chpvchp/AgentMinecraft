@@ -3,3 +3,5 @@
 __pycache__
 structure.txt
 *.gguf
+pipelines/*
+!pipelines/.gitignore
