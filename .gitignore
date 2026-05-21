@@ -1,5 +1,6 @@
 .venv
 .env
+.env.webui
 __pycache__
 structure.txt
 *.gguf
