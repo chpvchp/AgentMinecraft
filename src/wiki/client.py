@@ -1,12 +1,19 @@
 from playwright.sync_api import sync_playwright
 
-with sync_playwright() as p:
-    browser = p.chromium.launch(headless=False)
+def get_info_wiki(titles):
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=False)
+        
+        page = browser.new_page()
+        
+        url = f"https://minecraft.wiki/api.php?action=query&prop=extracts&titles={titles}&explaintext=1&format=json"
+        
+        response = page.goto(url=url)
+
+        data = page.text_content("body")
+
+        page.close()
+        
+        return data
     
-    page = browser.new_page()
-    
-    response = page.goto("https://minecraft.wiki/api.php?action=query&prop=extracts&titles=Mace&explaintext=1&format=json")
-    
-    print(page.text_content("body"))
-    
-    page.close()
+print(get_info_wiki("Mace"))
