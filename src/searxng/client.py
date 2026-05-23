@@ -8,9 +8,9 @@ def rank_core(url):
     else:
         return 1
     
-def parse_results(results):
+def parse_results(results, top_k):
     list_page = []
-    for _ in range(8):
+    for _ in range(top_k):
         if "www.youtube.com" in results[_].get("url"):
             continue
         core = rank_core(results[_].get("url"))
@@ -22,7 +22,7 @@ def parse_results(results):
         })
     return list_page
 
-def get_list_search(query: str):
+def get_list_search(query: str, top_k: int = 4):
     params = {
         "q": query,
         "format": "json",
@@ -36,11 +36,9 @@ def get_list_search(query: str):
             }
         else:
             results = response.json().get("results")
-            data = parse_results(results)
+            data = parse_results(results, top_k)
             list_data = {
                 "query": query,
                 "results": data
             }
-            print(list_data)
-    
-get_list_search("Apple Enchantments Minecraft")
+            return list_data
