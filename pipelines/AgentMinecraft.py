@@ -6,7 +6,6 @@ version: alpha0
 
 from typing import TypedDict, List, Generator, Iterator, Union
 from langgraph.graph import StateGraph, START, END
-from src.wiki.client import MinecraftWiki
 from src.llm.client import llama_cpp
 
 # ===== API ===== #
@@ -20,14 +19,7 @@ print(os.getenv("LANGSMITH_TRACING"))
 
 
 # ===== TOOLS ===== #
-wiki = MinecraftWiki()
 
-def get_info(query: str) -> str:
-    return wiki.get_extract(query)
-
-tools = [
-    {"name_tools": "get_info", "description": "Khi dùng tool, cần chọn ra một từ khóa phù hợp nhất. Cấu trúc của tools này là: 'get_info(query)'"}
-]
 
 # ===== STATE ===== #
 class AgentMC(TypedDict):
@@ -42,7 +34,6 @@ def agent_node(state: AgentMC):
     You are a Minecraft Agent.
 
     TOOLS:
-    {tools}
 
     RULES:
     - MUST use tool for Minecraft-related queries
