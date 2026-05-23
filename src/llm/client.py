@@ -1,6 +1,6 @@
 import httpx
 
-def llama_cpp(api, system_prompt, user_prompt):
+def llama_cpp(system_prompt, user_prompt):
     body = {
         "messages": [
             {"role": "system", "content": system_prompt},
@@ -8,6 +8,7 @@ def llama_cpp(api, system_prompt, user_prompt):
         ],
         "stream": False
     }
-    
-    response = httpx.post(api, json=body, timeout=None)
-    return response.json()
+    response = httpx.post("http://localhost:8081/v1/chat/completions", json=body, timeout=None)
+    content = response.json().get("choices")[0].get("message").get("content")
+    return content
+
