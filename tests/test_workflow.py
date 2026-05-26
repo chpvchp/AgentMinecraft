@@ -1,3 +1,13 @@
+# ===== TEXT =====#
+import re
+import json
+
+# ===== LANGSMITH ===== #
+import os
+from dotenv import load_dotenv
+load_dotenv()
+print(os.getenv("LANGSMITH_TRACING"))
+
 # ===== LANGGRAPH ===== #
 from langgraph.graph import StateGraph, START, END
 from typing import TypedDict
@@ -12,7 +22,8 @@ from src.llm.client import llama_cpp
 class AgentMC(TypedDict):
     user_input: str
     agent_response: str
-    tool_result: str
+    tool_result: list
+    count: int
     
     
 # ===== TOOLS ===== #
@@ -26,13 +37,16 @@ tools = {
     ]
 }
 
+tools_registry = {
+    "get_list_search": get_list_search
+}
 
 # ===== NODES ===== #
 def agent(state):
     # Debug
     print("INPUT NODE AGENT")
     print(state)
-    print("#" * 8)
+    print("=" * 64, "\n")
     system_prompt = f"""
     # VAI TRÒ
     Bạn là Agent Minecraft.
@@ -51,23 +65,23 @@ def agent(state):
     - Khi muốn gọi tool, BẮT BUỘC CHỈ trả về text có cấu trúc như sau:
     
     Thought: <suy nghĩ của bạn về yêu cầu người dùng>
-    Name: <tên tool muốn gọi>
-    Args: tham_so_1="<_>" tham_so_2="<_>"
+    Action: <tên tool muốn gọi>
+    Action Input: {{"tham_so_1":"<_>" "tham_so_2":"<_>"}}
     
     Ví dụ:
     Thought: Người dùng yêu cầu "Minecraft là gì?". Tôi cần tìm kiếm từ Internet
-    Name: get_list_search
-    Args: query="Minecraft là gì?", top_k=4
-    
-    # QUY TẮC KHI NHẬN TOOL RESULT
-    Khi nhận dữ liệu từ TOOL_RESULTS:
+    Action: get_list_search
+    Action Input: {{"query":"Minecraft là gì?", "top_k":4}}
+
+    # QUY TẮC KHI NHẬN Observation
+    Khi nhận dữ liệu từ Observation:
     - Phân tích dữ liệu trả về
-    - TUYỆT ĐỐI không bịa thêm thông tin ngoài tool result
+    - TUYỆT ĐỐI không bịa thêm thông tin ngoài Observation
     - BẮT BUỘC trả lời theo format:
 
     Answer: <câu trả lời ngắn gọn, rõ ràng>
     
-    - Nếu dữ liệu tool không đủ, gọi lại tool tối ưu hơn.
+    - Nếu dữ liệu tool không đủ, gọi lại tool với tham số tối ưu hơn.
     - Nếu hết hạn gọi tool, hãy đưa ra câu trả lời cuối cùng dựa trên dữ liệu hiện có.
     
     # QUY TẮC TƯ DUY (CHAIN)
@@ -80,20 +94,53 @@ def agent(state):
     - Không “đoán theo kinh nghiệm”
     - Minecraft data phải dựa vào tool hoặc nguồn hệ thống
     """
-    user_prompt = state.get("user_input")
+    user_prompt = f"""
+    # USER INPUT
+    {state.get("user_input")}
+    
+    # OBSERVATION
+    {state.get("tool_result", "")}
+    """
     llm_response = llama_cpp(system_prompt=system_prompt, user_prompt=user_prompt)
     return {
         "agent_response": llm_response
     }
 
+def route_node(state):
+    if "Action" not in state.get("agent_response") or "Action Input" not in state.get("agent_response") or state.get("count") > 3:
+        return "end"
+    else:
+        return "tool"
+    
+    
 def tool_node(state):
-    pass
+    # Debug
+    print("INPUT NODE TOOL")
+    print(state)
+    print("=" * 64, "\n")
+    agent_response = state.get("agent_response")
+    tool_ = re.search(r"Action: \s*(.*)", agent_response).group(1)
+    args = json.loads(re.search(r"Action Input: \s*(.*)", agent_response).group(1))
+    results = tools_registry[tool_](**args)
+    return {
+        "tool_result": state.get("tool_result", []) + [results],
+        "count": state.get("count") + 1
+    }
     
 # ===== GRAPH ===== #
 graph = StateGraph(AgentMC)
 graph.add_node("agent", agent)
+graph.add_node("tool", tool_node)
 graph.add_edge(START, "agent")
-graph.add_edge("agent", END)
+graph.add_conditional_edges(
+    "agent",
+    route_node,
+    {
+        "end": END,
+        "tool": "tool"
+    }
+)
+graph.add_edge("tool", "agent")
 graph = graph.compile()
 
 with open("graph.png", "wb") as png:
@@ -102,17 +149,20 @@ with open("graph.png", "wb") as png:
 
 # ===== WORKFLOWS ===== #
 state: AgentMC = {
-            "user_input": "Mace là gì",
+            "user_input": "Bản 26.2 khi nào ra",
             "agent_response": "",
-            "tool_result": ""
+            "tool_result": [],
+            "count": 0
         }
 
 for step in graph.stream(state):
     node_name = list(step.keys())[0]
-    print(node_name)
     state.update(step[node_name])
 
-print(state.get("agent_response"))
+# Debug
+print("OUTPUT STATE")
+print(state)
+print("=" * 64, "\n")
     
     
     
